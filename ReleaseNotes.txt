@@ -1,0 +1,108 @@
+Version 1.10, 7th January 2014
+==Bug Fixes==
+Bug fixes in GM_PHD_Create_Birth
+As pointed out by Hannes Pessentheiner, in GM_PHD_Create_Birth the weight of the existing target was not being used to scale the weight of spawned targets in the static-spawn case. This is fixed now. 
+________________________________________________________________________________________________________________
+Version 1.09, 13th December 2013
+== Bug Fixes==
+Ba-Ngu Vo has kindly allowed me to use his OSPA calculation code ospa_dist.m so CalculateOSPAMetric has been removed and replaced with ospa_dist.m. This uses Hungarian.m by Alex Melin, to whom I am also much obliged. This code is also available online at http://ba-ngu.vo-au.com/vo/OSPA_for_Tracks.zip
+Apologies for putting up CalculateOSPAMetric while it was still buggy, I'll rush less in future.
+
+I've also made this change to the linear-KF-only version 1.05 that is also included in the zip, and documented it in the respective GM_PHD_Filter.m. For versioning convenience it's now version 1.05a. I hope that this is the last update I need to make to it.
+________________________________________________________________________________________________________________
+Version 1.08, 12th December 2013
+==Bug Fixes==
+These fixes focus on the OSPA metric calculation. It's much less buggy now than it was before, but still not entirely correct. Use with caution. Hat tip to Abdulkadir Eryildirim for identifying something amiss.
+
+Bug fixes in GM_PHD_Calculate_Performance_Metric
+Corrected it so that data is passed from simTarget3History instead of simTarget2History.
+
+Bug fixes in CalculateOSPAMetric
+Added a loop to include cost for elements of Y that are not matched in X (i.e. for (m+1:n)).
+________________________________________________________________________________________________________________
+Version 1.07, 10th December 2013
+==Bug Fixes==
+Bug fixes in GM_PHD_Create_Birth and GM_EKF_PHD_Create_Birth
+Restructured so that static targets will be added from the first measurement, not waiting until the second like the moving targets.
+________________________________________________________________________________________________________________
+Version 1.06, 2nd December 2013
+==Bug Fixes==
+Increased the speed of target 3 so that it more closesly matches the trajectory in Vo & Ma's example. It's still not perfect (it's a straight line rather than curving) but it's better than it was before.
+
+==New Features==
+Extended Kalman Filter
+I have added an implementation of the extended Kalman filter algorithm from Vo & Ma's paper, for use with a simulated range-bearing sensor. The simulation is still the same, with a simulated range-bearing sensor pointing along the X-axis at the origin. The linear KF and EKF can be switched between by setting/clearing USE_EKF in GM_PHD_Initialisation. This will control which scripts are called in GM_PHD_Filter. The structure of the algorithm is still the same.
+
+Just in case someone doesn't want to use the EKF and wants just the linear version, I'll include a zipped version of the linear-Kalman-filter-only GM-PHD filter.
+
+Velocity arrows
+Velocity arrows can be drawn on the simulated target plot using quiver() in both linear and EKF. To turn this on and off, set/clear DRAW_VELOCITIES in GM_PHD_Initialisation.
+________________________________________________________________________________________________________________
+Version 1.05, 21 November 2013
+Hat-tip to Abdulkadir Eryildirim and Kevin Nickels for identifying bugs and missing features in the code.
+
+==Bug Fixes==
+Bug fixes in GM_PHD_Predict_Birth
+Fixed a few comments and a print statement that had birth and spawn mixed up; this would have caused crashes when VERBOSE was set to 1.
+Changed variable v in GM_PHD_Create_Birth to thisV in case I ever use a variable named v elsewhere.
+
+Bug fixes in GM_PHD_Update
+Changed variable V in GM_PHD_Update to thisV. V was already being used for the monitored volume. This may have been degrading filter performance.
+
+Simulation plots
+Removed some extra plots from GM_PHD_Simulate_Initialise and GM_PHD_Simulate_Plot; I haven't kept them updated and they're not that useful.
+simTargetState3 was being predicted forward twice in GM_PHD_Simulate_Measurement. Now it is only happening once. All this means is that it moves at half the speed it did previously.
+
+==New Features==
+State Estimation in GM_PHD_Estimate
+Added in the extra-display in GM_PHD_Estimate to better match Vo & Ma's algorithm. I'm not sure whether this is really necessary; it doesn't change filter performance, just output, but I want to match the pseudocode. This is controlled by setting the control variable OUTPUT_MULTIPLE_HIGH_WEIGHT_TARGETS in GM_PHD_Initialisation to 1. VERBOSE also needs to be set to 1 to see the output.
+
+Optimal Subpattern Assignment (OSPA) metric implementation
+I have added an implementation of the OSPA metric described by Schuhmacher et al in
+"A Consistent Metric for Performance Evaluation of Multi-Object Filters," Signal Processing, IEEE Transactions on , vol.56, no.8, pp.3447,3457, Aug. 2008
+It's not necessary for the Vo & MA PHD filter to work but provides a nice way of visualising filter performance. It's enabled in GM_PHD_Initialisation by setting CALCULATE_OSPA_METRIC to 1. The calculated metric appears as a line graph. Be advised, it slows down the filter.
+
+==Comments==
+Added comments in unifpdf_2d.m about the risks involved in using the implementation of unifpdf_2d that I have written outside of its current operating conditions. It returns zero outside the region of interest, when it should probably return 100% clutter likelihood for measurements outside that region. This should have no effect with the current simulator as all measurements are inside the region and the state estimate is never predicted or updated to be outside the region, but if you were using this code in another environment, or had a different/buggy prediction/update equation this can and will cause problems for you. You do not want the weight of a target increasing when it is outside the observable range of the sensor.
+
+Added comments in GM_PHD_Simulate_Initialise regarding nClutter; it would probably be better to use poissrnd(50) rather than constant 50 but the latter works well enough for this simulation.
+
+________________________________________________________________________________________________________________
+Version 1.04, 12 September 2013
+Bug fixes in GM_PHD_Prune
+Two issues kindly pointed out by Hannes Pessentheiner. i changed to thisI to access the correct values of P_k. inv changed to slash for inversion of covariance.
+
+Bug fix in GM_PHD_Construct_Update_Components
+inv changed to slash.
+
+Version 1.03 2 September 2013
+Spawning
+Previously a spawned target had its weight calculated using the spawn function but was functionally identical to a birthed target in all other respects. Now a spawned target is stored in its own data structure and with the spawn covariance defined in Vo&Ma.
+Additionally, there was an error in the calculation of the spawn weight (it was not taking into account the weight of the target that the new target was spawned from); this has been fixed. These changes are to GM_PHD_Create_Birth, GM_PHD_Predict_Birth and GM_PHD_Estimate (to store the weights of the estimated features).
+
+Plotting
+Measurements corresponding to real targets now have a black 'o' as well as the black 'x' that all measurements have. 
+An extra control flag has been added in GM_PHD_Initialisation.m, PLOT_ALL_MEASUREMENTS to select whether to wipe the plot of all measurements or retain them. This allows all historical measurements and error ellipses to be seen at once but can make the plot cluttered.
+
+VERBOSE
+A pause has been added to the bottom of the main loop when VERBOSE is set to true; this allows all the output data to be read easily.
+
+Version 1.02 27 August 2013
+Renaming and deleting
+simNoisyMeasurementHistory is now simMeasurementHistory.
+Deleted a couple of variables that weren't being used.
+
+Documentation
+Added a few comments to hopefully make it clearer how to modify this code for different applications.
+
+Version 1.01 31 July 2013
+Spawning
+Previously, all targets were treated as being birthed. Now they can also be spawned. The only difference is that a different weight is assigned to them on initialisation (the birth weight is high at certain fixed birth locations and low further away, the spawning weight is high at the location of existing targets and low further away). Whichever weight function gives a higher weight is the one assigned in GM_PHD_Create_Birth.m. Currently, there is no difference in prediction for spawned and birthed targets.
+This brings the implementation better in line with the Vo&Ma paper. 
+This does not seem to have too great of an impact on filter performance; target 3 seemed to be created fairly reliably as a fork off from target 1 even though it should theoretically have been assigned a low birth weight. This may make the filter more reliable if the problem changes.
+
+Verbose
+Setting VERBOSE = 1 in GM_PHD_Initialisation produces more onscreen information from more parts of the filter. The added output blocks are generally at the bottom of the scripts so as not to clutter it up too much.
+
+Version 1.00 22 July 2013
+Original version
